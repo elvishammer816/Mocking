@@ -8,6 +8,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 import os
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+# ...rest of imports...
 
 class TestBookScraper:
     def __init__(self):
@@ -15,6 +20,9 @@ class TestBookScraper:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
+
+        # Optional but safe: tell Selenium where Chromium is
+        chrome_options.binary_location = os.getenv("CHROME_BINARY", "/usr/bin/chromium")
 
         self.driver = webdriver.Chrome(
             service=Service(ChromeDriverManager().install()),
