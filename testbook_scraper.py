@@ -15,11 +15,12 @@ class TestBookScraper:
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
 
-        # Optional but safe: tell Selenium where Chromium is
+        # Tell Selenium where Chromium is
         chrome_options.binary_location = os.getenv("CHROME_BINARY", "/usr/bin/chromium")
 
+        # Use the system chromedriver installed by 'apt-get install chromium-driver'
         self.driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
+            service=Service("/usr/bin/chromedriver"),
             options=chrome_options
         )
 
