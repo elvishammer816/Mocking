@@ -8,47 +8,56 @@ from bs4 import BeautifulSoup
 import time
 import os
 
+
+ 
 class TestBookScraper:
     def __init__(self):
+        # Nothing heavy here anymore; driver will be created per scrape
+        pass
+
+    def _create_driver(self):
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
 
-        # Tell Selenium where Chromium is
+        # Path to Chromium binary (set in Dockerfile)
         chrome_options.binary_location = os.getenv("CHROME_BINARY", "/usr/bin/chromium")
 
-        # Use the system chromedriver installed by 'apt-get install chromium-driver'
-        self.driver = webdriver.Chrome(
+        # Use system chromedriver installed via 'apt-get install chromium-driver'
+        driver = webdriver.Chrome(
             service=Service("/usr/bin/chromedriver"),
             options=chrome_options
         )
+        return driver
 
     def scrape_test_series(self, url, timer_minutes):
-        self.driver.get(url)
-        
+        driver = self._create_driver()
+
         try:
-            WebDriverWait(self.driver, 20).until(
+            driver.get(url)
+
+            WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, ".test-series-card, .testCard"))
             )
-            
-            self._scroll_page()
-            
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+
+            self._scroll_page(driver)
+
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
             test_cards = soup.select('.test-series-card:not(.free), .testCard:not(.free)')
-            
+
             if not test_cards:
                 return []
-            
+
             results = []
             for i, card in enumerate(test_cards[:3]):  # Limit to 3 tests
                 try:
                     test_id = card.get('data-test-id', f"mock_{i}")
                     test_title = self._get_test_title(card)
-                    
+
                     filename = f"templates/mock_test_{test_id}.html"
                     self._generate_html(test_title, str(card), timer_minutes, filename)
-                    
+
                     results.append({
                         'id': test_id,
                         'title': test_title,
@@ -57,21 +66,21 @@ class TestBookScraper:
                 except Exception as e:
                     print(f"Error processing test card {i}: {e}")
                     continue
-            
+
             return results
         finally:
-            self.driver.quit()
+            driver.quit()
 
     def _get_test_title(self, card):
         title_elem = card.select_one('.test-series-card__title, .testCard__title, [class*="title"]')
         return title_elem.get_text(strip=True) if title_elem else "Mock Test"
 
-    def _scroll_page(self):
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
+    def _scroll_page(self, driver):
+        last_height = driver.execute_script("return document.body.scrollHeight")
         while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(2)
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            new_height = driver.execute_script("return document.body.scrollHeight")
             if new_height == last_height:
                 break
             last_height = new_height
@@ -79,11 +88,11 @@ class TestBookScraper:
     def _generate_html(self, title, content, minutes, filename):
         with open('templates/mock_test.html', 'r') as f:
             template = f.read()
-        
+
         html_content = template.replace('{{test_title}}', title)
         html_content = html_content.replace('{{test_content}}', content)
         html_content = html_content.replace('{{timer_minutes}}', str(minutes))
-        
+
         os.makedirs('templates', exist_ok=True)
         with open(filename, 'w') as f:
             f.write(html_content)
