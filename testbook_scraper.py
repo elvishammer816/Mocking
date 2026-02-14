@@ -16,9 +16,6 @@ class TestBookScraper:
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
 
-        # Use the chromium-browser binary installed by apt
-        chrome_options.binary_location = "/usr/bin/chromium-browser"
-
         self.driver = webdriver.Chrome(
             service=Service(ChromeDriverManager().install()),
             options=chrome_options
